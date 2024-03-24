@@ -33,7 +33,7 @@
                 class="com.kwizto.kwizky.NextQuestionAction">
             <keyboard-shortcut
                     keymap="$default"
-                    first-keystroke="alt shift D"
+                    first-keystroke="alt D"
           />
         </action>
     </actions>
