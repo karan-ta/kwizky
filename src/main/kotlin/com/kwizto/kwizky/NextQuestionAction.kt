@@ -24,7 +24,7 @@ class NextQuestionAction: AnAction() {
         val currentProject: Project? = event.project
         val toolWindow: ToolWindow? = currentProject?.let { ToolWindowManager.getInstance(it).getToolWindow("Kwizky") }
         toolWindow?.let {
-            KwizkyToolWindowFactory.updateToolWindowContent(it)
+            KwizkyToolWindowFactory.updateToolWindowContent(it,"next")
         }
 //        Messages.showMessageDialog(
 //            currentProject,
