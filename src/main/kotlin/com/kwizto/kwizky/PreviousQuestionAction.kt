@@ -2,9 +2,30 @@ package com.kwizto.kwizky
 
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.wm.ToolWindow
+import com.intellij.openapi.wm.ToolWindowManager
+import org.jetbrains.annotations.NotNull
 
 class PreviousQuestionAction: AnAction() {
-    override fun actionPerformed(p0: AnActionEvent) {
+    override fun update(@NotNull event: AnActionEvent) {
+        // Using the event, evaluate the context,
+        // and enable or disable the action.
+    }
 
+    override fun actionPerformed(event: AnActionEvent) {
+        // Using the event, create and show a dialog
+
+        val currentProject: Project? = event.project
+        val toolWindow: ToolWindow? = currentProject?.let { ToolWindowManager.getInstance(it).getToolWindow("Kwizky") }
+        toolWindow?.let {
+            KwizkyToolWindowFactory.updateToolWindowContent(it,"previous")
+        }
+//        Messages.showMessageDialog(
+//            currentProject,
+//            "hello world",
+//            "helloworld",
+//            Messages.getInformationIcon()
+//        )
     }
 }

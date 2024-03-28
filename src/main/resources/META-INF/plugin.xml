@@ -36,6 +36,22 @@
                     first-keystroke="alt D"
           />
         </action>
+        <action
+                id="com.kwizto.kwizky.PreviousQuestionAction"
+                class="com.kwizto.kwizky.PreviousQuestionAction">
+            <keyboard-shortcut
+                    keymap="$default"
+                    first-keystroke="alt A"
+            />
+        </action>
+        <action
+                id="com.kwizto.kwizky.ShowAnswerAction"
+                class="com.kwizto.kwizky.ShowAnswerAction">
+            <keyboard-shortcut
+                    keymap="$default"
+                    first-keystroke="alt X"
+            />
+        </action>
     </actions>
 
 </idea-plugin>

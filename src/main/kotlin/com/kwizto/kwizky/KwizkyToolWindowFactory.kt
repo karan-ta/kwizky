@@ -5,15 +5,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
-import java.awt.Component
-import java.awt.Dimension
 import java.awt.FlowLayout
 import javax.swing.BoxLayout
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JSeparator
 import javax.swing.Box
-
 
 data class Card(
     var questionString: String,
@@ -22,7 +19,6 @@ data class Card(
 class KwizkyToolWindowFactory:ToolWindowFactory,DumbAware {
 companion object {
     val contentOuterPanel = JPanel()
-
     val contentPanel = JPanel()
     val questionText = JLabel()
     val questionAnswerSeparator = JSeparator(JSeparator.HORIZONTAL)
@@ -32,11 +28,31 @@ companion object {
         Card("one q","one a"),
         Card("two q","two a"),
         Card("three q","three a"),
-        Card("four q","four a"),
+        Card("four q","four a")
         )
-    fun showNextCard(toolWindow:ToolWindow,mode:String){
-        if(currentCardCount == 0){
+    fun updateContentOfOuterPanel(toolWindow:ToolWindow,questionLabel: JLabel?,answerLabel:JLabel?,mode:String){
+        val content = toolWindow.contentManager.contents[0].component as? JPanel
+        content?.let {
+            it.removeAll()
+            val contentInnerPanel = JPanel()
+            contentInnerPanel.setLayout(BoxLayout(contentInnerPanel, BoxLayout.Y_AXIS))
 
+            contentInnerPanel.add(questionLabel)
+            if(mode == "questionAnswer") {
+                contentInnerPanel.add(Box.createVerticalStrut(20))
+                contentInnerPanel.add(answerLabel)
+            }
+            it.add(contentInnerPanel)
+            it.revalidate()
+            it.repaint()
+        }
+    }
+    fun showRequiredCard(toolWindow:ToolWindow, mode:String){
+        when(mode){
+            "next" -> currentCardCount++
+            "previous" ->  currentCardCount--
+        }
+        if(mode == "initial"){
             val questionLabel = JLabel(cardArray[0].questionString)
             val answerLabel = JLabel(cardArray[0].answerString)
 //            questionLabel.alignmentX = Component.CENTER_ALIGNMENT
@@ -44,58 +60,44 @@ companion object {
 //            questionLabel.preferredSize = Dimension(200, questionLabel.preferredSize.height)
 //            answerLabel.preferredSize = Dimension(200, answerLabel.preferredSize.height)
             contentOuterPanel.layout = FlowLayout(FlowLayout.CENTER)
-
             contentPanel.setLayout(BoxLayout(contentPanel, BoxLayout.Y_AXIS))
             contentPanel.add(questionLabel)
 //            contentPanel.add(questionAnswerSeparator)
-            contentPanel.add(Box.createVerticalStrut(20))
-            contentPanel.add(answerLabel)
+//            contentPanel.add(Box.createVerticalStrut(20))
+//            contentPanel.add(answerLabel)
             contentOuterPanel.add(contentPanel)
-
         }
         else{
             if(currentCardCount >= cardArray.size)
                 currentCardCount = 0
+            if(currentCardCount < 0)
+                currentCardCount = cardArray.size - 1
             val questionLabel = JLabel(cardArray[currentCardCount].questionString)
             val answerLabel = JLabel(cardArray[currentCardCount].answerString)
 //            questionLabel.alignmentX = Component.CENTER_ALIGNMENT
 //            answerLabel.alignmentX = Component.CENTER_ALIGNMENT
 //            questionLabel.preferredSize = Dimension(200, questionLabel.preferredSize.height)
 //            answerLabel.preferredSize = Dimension(200, answerLabel.preferredSize.height)
-            val content = toolWindow.contentManager.contents[0].component as? JPanel
             println("in update tool window showing below string")
             println(cardArray[currentCardCount].questionString)
-//        println(content?.components?.forEach { it.name })
+            updateContentOfOuterPanel(toolWindow,questionLabel,answerLabel,"question")
 
-            content?.let {
-                it.removeAll()
-                val contentInnerPanel = JPanel()
-                contentInnerPanel.setLayout(BoxLayout(contentInnerPanel, BoxLayout.Y_AXIS))
-                contentInnerPanel.add(questionLabel)
-//                it.add(questionAnswerSeparator)
-                contentInnerPanel.add(Box.createVerticalStrut(20))
-                contentInnerPanel.add(answerLabel)
-                it.add(contentInnerPanel)
-                it.revalidate()
-                it.repaint()
-            }
         }
-        if(mode == "next")
-            currentCardCount++
-        if(mode == "previous")
-            currentCardCount--
-    }
-    fun showAnswer(toolWindow:ToolWindow,mode:String){
 
+    }
+    fun showAnswer(toolWindow:ToolWindow){
+        val questionLabel = JLabel(cardArray[currentCardCount].questionString)
+        val answerLabel = JLabel(cardArray[currentCardCount].answerString)
+        updateContentOfOuterPanel(toolWindow,questionLabel,answerLabel,"questionAnswer")
     }
     fun updateToolWindowContent(toolWindow: ToolWindow,mode:String) {
         // Modify the content of your tool window
         //First Time
-        if (mode == "next" || mode == "previous"){
-            showNextCard(toolWindow,mode)
+        if (mode == "next" || mode == "previous" || mode == "initial"){
+            showRequiredCard(toolWindow,mode)
         }
         if(mode == "showAnswer"){
-            showAnswer(toolWindow,"showAnswer")
+            showAnswer(toolWindow)
         }
 
     }
@@ -110,7 +112,7 @@ companion object {
         val actionList = mutableListOf<AnAction>()
         actionList.add(nextQuestionAction)
         toolWindow.setTitleActions(actionList)
-        KwizkyToolWindowFactory.updateToolWindowContent(toolWindow,"next")
+        KwizkyToolWindowFactory.updateToolWindowContent(toolWindow,"initial")
         val toolWindowContentPanel = KwizkyToolWindowFactory.getToolWindowContentPanel()
         val content = ContentFactory.getInstance().createContent(toolWindowContentPanel,"",false)
         toolWindow.contentManager.addContent(content)
