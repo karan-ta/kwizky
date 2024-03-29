@@ -1,16 +1,22 @@
 package com.kwizto.kwizky
 import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.progress.ModalTaskOwner.project
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
+import com.intellij.psi.search.FilenameIndex
+import com.intellij.psi.search.FilenameIndex.processAllFileNames
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.ui.content.ContentFactory
+import com.intellij.util.ArrayUtilRt
 import java.awt.FlowLayout
-import javax.swing.BoxLayout
-import javax.swing.JLabel
-import javax.swing.JPanel
-import javax.swing.JSeparator
-import javax.swing.Box
+import javax.swing.*
+import com.intellij.util.containers.CollectionFactory;
+import kotlin.io.path.Path
 
 data class Card(
     var questionString: String,
@@ -24,12 +30,7 @@ companion object {
     val questionAnswerSeparator = JSeparator(JSeparator.HORIZONTAL)
 
     var currentCardCount = 0
-    var cardArray = arrayOf(
-        Card("one q","one a"),
-        Card("two q","two a"),
-        Card("three q","three a"),
-        Card("four q","four a")
-        )
+    var cardList = mutableListOf<Card>()
     fun updateContentOfOuterPanel(toolWindow:ToolWindow,questionLabel: JLabel?,answerLabel:JLabel?,mode:String){
         val content = toolWindow.contentManager.contents[0].component as? JPanel
         content?.let {
@@ -53,8 +54,8 @@ companion object {
             "previous" ->  currentCardCount--
         }
         if(mode == "initial"){
-            val questionLabel = JLabel(cardArray[0].questionString)
-            val answerLabel = JLabel(cardArray[0].answerString)
+            val questionLabel = JLabel(cardList[0].questionString)
+            val answerLabel = JLabel(cardList[0].answerString)
 //            questionLabel.alignmentX = Component.CENTER_ALIGNMENT
 //            answerLabel.alignmentX = Component.CENTER_ALIGNMENT
 //            questionLabel.preferredSize = Dimension(200, questionLabel.preferredSize.height)
@@ -68,26 +69,26 @@ companion object {
             contentOuterPanel.add(contentPanel)
         }
         else{
-            if(currentCardCount >= cardArray.size)
+            if(currentCardCount >= cardList.size)
                 currentCardCount = 0
             if(currentCardCount < 0)
-                currentCardCount = cardArray.size - 1
-            val questionLabel = JLabel(cardArray[currentCardCount].questionString)
-            val answerLabel = JLabel(cardArray[currentCardCount].answerString)
+                currentCardCount = cardList.size - 1
+            val questionLabel = JLabel(cardList[currentCardCount].questionString)
+            val answerLabel = JLabel(cardList[currentCardCount].answerString)
 //            questionLabel.alignmentX = Component.CENTER_ALIGNMENT
 //            answerLabel.alignmentX = Component.CENTER_ALIGNMENT
 //            questionLabel.preferredSize = Dimension(200, questionLabel.preferredSize.height)
 //            answerLabel.preferredSize = Dimension(200, answerLabel.preferredSize.height)
             println("in update tool window showing below string")
-            println(cardArray[currentCardCount].questionString)
+            println(cardList[currentCardCount].questionString)
             updateContentOfOuterPanel(toolWindow,questionLabel,answerLabel,"question")
 
         }
 
     }
     fun showAnswer(toolWindow:ToolWindow){
-        val questionLabel = JLabel(cardArray[currentCardCount].questionString)
-        val answerLabel = JLabel(cardArray[currentCardCount].answerString)
+        val questionLabel = JLabel(cardList[currentCardCount].questionString)
+        val answerLabel = JLabel(cardList[currentCardCount].answerString)
         updateContentOfOuterPanel(toolWindow,questionLabel,answerLabel,"questionAnswer")
     }
     fun updateToolWindowContent(toolWindow: ToolWindow,mode:String) {
@@ -106,8 +107,68 @@ companion object {
         return contentOuterPanel
     }
 }
+    fun prepareCardsByReadingFile(project: Project){
+//        val names: MutableSet<String> = CollectionFactory.createSmallMemoryFootprintSet()
+//        processAllFileNames({ s: String ->
+//            println("name of file is "+s)
+//            names.add(s)
+//            true
+//        }, GlobalSearchScope.allScope(project), null)
+//        val filePath = Path("/c/Users/KaranAhuja/works/android-kotlin-vault/kotlin-conditionals-loops.md")
+//        println(filePath)
+//        val cardDataFile = LocalFileSystem.getInstance().findFileByPath()
+//        println(cardDataFile)
+//        if (cardDataFile != null) {
+//            VfsUtil.loadText(cardDataFile)
+//        };
+        val myFiles = FilenameIndex.getVirtualFilesByName("kotlin-conditionals-loops.md", GlobalSearchScope.allScope(project))
+        println(myFiles)
+        val fileContent = VfsUtil.loadText(myFiles.first())
+        println(fileContent)
+        val allLines = fileContent.lines()
+        var questionString = ""
+        var answerString = ""
+        var isCardComplete = false
+        var isQuestion = true
+        var isAnswer = false
+        allLines.forEach{
+
+            when(it.trim()){
+                "____" ->{
+                    isAnswer = true
+                    isQuestion = false
+                    isCardComplete = false
+                }
+                "" -> {
+                    isCardComplete = true
+                    isQuestion = true
+                    isAnswer = false
+                }
+            }
+            if(isCardComplete){
+                if(questionString != "" && answerString != "")
+                cardList.add(
+                    Card(questionString,answerString))
+                isCardComplete = false
+                questionString = ""
+                answerString = ""
+
+            }
+            if(it != "" && it != "____" && !isCardComplete) {
+                if (isQuestion)
+                    questionString += it.trim()
+                if(isAnswer)
+                    answerString += it.trim()
+            }
+        }
+
+
+        println(cardList)
+
+    }
     // Register the action with IntelliJ's action system
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+        prepareCardsByReadingFile(project)
         val nextQuestionAction = NextQuestionAction()
         val actionList = mutableListOf<AnAction>()
         actionList.add(nextQuestionAction)
